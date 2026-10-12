@@ -1,5 +1,6 @@
 """Lightweight ONNX Runtime FastAPI inference for Sinhala handwriting YOLO detection."""
 import json
+import logging
 import os
 import threading
 import time
@@ -28,24 +29,49 @@ LABEL_MAP = {
     'sinhala_u': 'උ', 'sinhala_ya': 'ය',
 }
 
-if not MODEL_PATH.is_file():
-    raise FileNotFoundError(f'Missing ONNX model: {MODEL_PATH}')
-if not CLASSES_PATH.is_file():
-    raise FileNotFoundError(f'Missing class names: {CLASSES_PATH}')
-with CLASSES_PATH.open(encoding='utf-8') as file:
-    class_names = json.load(file)
-if isinstance(class_names, dict):
-    class_names = [v for k, v in sorted(class_names.items(), key=lambda item: int(item[0]))]
-if not isinstance(class_names, list) or not class_names:
-    raise ValueError('class_names.json must contain an ordered list of classes')
+logger = logging.getLogger('dysgraphia-model')
+session = None
+class_names = []
+input_name = ''
+output_name = ''
+model_load_error = None
 
-session = ort.InferenceSession(str(MODEL_PATH), providers=['CPUExecutionProvider'])
-input_info = session.get_inputs()[0]
-input_name = input_info.name
-output_name = session.get_outputs()[0].name
-input_shape = input_info.shape
-if isinstance(input_shape[-1], int) and input_shape[-1] > 0:
-    MODEL_IMAGE_SIZE = input_shape[-1]
+
+def load_model() -> None:
+    """Load model artifacts without preventing the health endpoint from starting."""
+    global session, class_names, input_name, output_name, MODEL_IMAGE_SIZE, model_load_error
+    try:
+        if not MODEL_PATH.is_file():
+            raise FileNotFoundError('ONNX model artifact is missing.')
+        if not CLASSES_PATH.is_file():
+            raise FileNotFoundError('Class-name artifact is missing.')
+        with CLASSES_PATH.open(encoding='utf-8') as file:
+            loaded_classes = json.load(file)
+        if isinstance(loaded_classes, dict):
+            loaded_classes = [value for _, value in sorted(loaded_classes.items(), key=lambda item: int(item[0]))]
+        if not isinstance(loaded_classes, list) or not loaded_classes:
+            raise ValueError('Class-name artifact is invalid.')
+
+        loaded_session = ort.InferenceSession(str(MODEL_PATH), providers=['CPUExecutionProvider'])
+        input_info = loaded_session.get_inputs()[0]
+        loaded_output_name = loaded_session.get_outputs()[0].name
+        input_shape = input_info.shape
+        if isinstance(input_shape[-1], int) and input_shape[-1] > 0:
+            MODEL_IMAGE_SIZE = input_shape[-1]
+
+        session = loaded_session
+        class_names = loaded_classes
+        input_name = input_info.name
+        output_name = loaded_output_name
+        model_load_error = None
+        logger.info('event=dysgraphia_model_ready input=%s output=%s image_size=%s', input_name, output_name, MODEL_IMAGE_SIZE)
+    except Exception as error:
+        session = None
+        model_load_error = error
+        logger.exception('event=dysgraphia_model_initialization_failed error_type=%s', type(error).__name__)
+
+
+load_model()
 inference_lock = threading.Lock()
 
 
@@ -108,11 +134,19 @@ def extract_candidates(output: np.ndarray) -> list[dict]:
 
 @app.get('/health')
 async def health():
-    return {'success': True, 'message': 'Sinhala handwriting model is running'}
+    ready = session is not None
+    return {
+        'success': ready,
+        'message': 'Sinhala handwriting model is running' if ready else 'Sinhala handwriting model is unavailable',
+    }, 200 if ready else 503
 
 
 @app.post('/predict')
 def predict(file: UploadFile = File(...)):
+    if session is None:
+        logger.error('event=dysgraphia_prediction_rejected_model_unavailable')
+        raise HTTPException(status_code=503, detail='Sinhala handwriting model is unavailable.')
+
     started = time.perf_counter()
     content = file.file.read()
     if not content:
