@@ -3,7 +3,6 @@ const cors = require("cors");
 const pino = require("pino");
 const pinoHttp = require("pino-http");
 const env = require("./config/env");
-const { getFirebaseAdminServices } = require("./config/firebaseAdmin");
 const { createAuthMiddleware } = require("./middleware/auth");
 const { errorHandler, notFound } = require("./middleware/errorHandler");
 const { createDysgraphiaController } = require("./modules/dysgraphia/controller");
@@ -12,6 +11,7 @@ const { createFirestoreDysgraphiaRepository } = require("./modules/dysgraphia/re
 const { createDysgraphiaRoutes, createUploadMiddleware, assertFilePresent } = require("./modules/dysgraphia/routes");
 const { createDysgraphiaService } = require("./modules/dysgraphia/service");
 const { createModelHealthChecker } = require("./services/modelHealthService");
+const { AppError } = require("./utils/appError");
 
 function createLogger(loggerInstance, destination) {
   if (loggerInstance) {
@@ -34,33 +34,84 @@ function createLogger(loggerInstance, destination) {
 
 function createApp(overrides = {}) {
   const logger = createLogger(overrides.logger, overrides.logDestination);
-  const firebaseAdmin = overrides.firebaseAdmin || getFirebaseAdminServices();
-  const repository =
-    overrides.repository ||
-    createFirestoreDysgraphiaRepository({
-      firestore: overrides.firestore || firebaseAdmin.firestore,
-      logger,
-    });
-  const predictor = overrides.predictor || createPredictor({ logger });
-  const service =
-    overrides.service ||
-    createDysgraphiaService({
-      repository,
-      predictor,
-      logger,
-      now: overrides.now,
-    });
-  const authMiddleware =
-    overrides.authMiddleware ||
-    createAuthMiddleware({
-      authClient: overrides.authClient || firebaseAdmin.auth,
-      repository,
-      logger,
-    });
-  const controller = overrides.controller || createDysgraphiaController({ service });
   const modelHealthChecker =
     overrides.modelHealthChecker || createModelHealthChecker({ logger });
   const app = express();
+  let protectedRoutes;
+
+  // Firebase credentials are only needed by authenticated API requests. Do
+  // not initialize Firebase while the module is imported: Vercel must be able
+  // to construct the Express app and answer CORS preflight requests first.
+  const getProtectedRoutes = () => {
+    if (protectedRoutes) {
+      return protectedRoutes;
+    }
+
+    try {
+      const needsFirebaseAdmin =
+        !overrides.firebaseAdmin &&
+        ((!overrides.repository && !overrides.firestore) || (!overrides.authMiddleware && !overrides.authClient));
+      const firebaseAdmin = needsFirebaseAdmin
+        ? require("./config/firebaseAdmin").getFirebaseAdminServices()
+        : overrides.firebaseAdmin;
+      const repository =
+        overrides.repository ||
+        createFirestoreDysgraphiaRepository({
+          firestore: overrides.firestore || firebaseAdmin?.firestore,
+          logger,
+        });
+      const predictor = overrides.predictor || createPredictor({ logger });
+      const service =
+        overrides.service ||
+        createDysgraphiaService({
+          repository,
+          predictor,
+          logger,
+          now: overrides.now,
+        });
+      const authMiddleware =
+        overrides.authMiddleware ||
+        createAuthMiddleware({
+          authClient: overrides.authClient || firebaseAdmin?.auth,
+          repository,
+          logger,
+        });
+      const controller = overrides.controller || createDysgraphiaController({ service });
+      const aliases = express.Router();
+      const aliasUpload = createUploadMiddleware();
+
+      aliases.post(
+        "/attempts/letter",
+        authMiddleware,
+        aliasUpload.single("image"),
+        assertFilePresent,
+        controller.submitLetterAttempt
+      );
+
+      protectedRoutes = {
+        dysgraphia: createDysgraphiaRoutes({ controller, authMiddleware }),
+        aliases,
+      };
+      return protectedRoutes;
+    } catch (error) {
+      logger.error(
+        {
+          event: "dysgraphia_protected_route_initialization_failed",
+          errorType: error?.name || "Error",
+        },
+        "Dysgraphia protected route initialization failed"
+      );
+      throw new AppError(503, "SERVICE_UNAVAILABLE", "Dysgraphia service is unavailable.");
+    }
+  };
+
+  const useProtectedRoute = (name) => (req, res, next) => {
+    try {
+      getProtectedRoutes()[name](req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  };
 
   app.disable("x-powered-by");
 
@@ -98,16 +149,8 @@ function createApp(overrides = {}) {
     });
   });
 
-  app.use("/api/dysgraphia", createDysgraphiaRoutes({ controller, authMiddleware }));
-
-  const aliasUpload = createUploadMiddleware();
-  app.post(
-    "/attempts/letter",
-    authMiddleware,
-    aliasUpload.single("image"),
-    assertFilePresent,
-    controller.submitLetterAttempt
-  );
+  app.use("/api/dysgraphia", useProtectedRoute("dysgraphia"));
+  app.use(useProtectedRoute("aliases"));
 
   app.use(notFound);
   app.use(errorHandler);
