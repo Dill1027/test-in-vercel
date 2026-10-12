@@ -12,6 +12,18 @@ import { notFound } from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 const proxyToModel = async (req, res, next) => {
+  if (!env.mlServiceUrl) {
+    console.error(JSON.stringify({
+      event: 'dyscalculia_ml_service_url_missing',
+      route: req.path,
+    }));
+    res.status(503).json({
+      success: false,
+      message: 'Prediction model is unavailable.',
+    });
+    return;
+  }
+
   try {
     // All public aliases use the Flask service's canonical internal route.
     // ML_SERVICE_URL is injected by the Vercel service binding at runtime.
@@ -28,17 +40,25 @@ const proxyToModel = async (req, res, next) => {
     const contentType = modelResponse.headers.get('content-type');
 
     if (!modelResponse.ok) {
-      console.error(
-        `Dyscalculia model request failed: ${req.method} ${req.path} returned ${modelResponse.status}`,
-      );
+      console.error(JSON.stringify({
+        event: 'dyscalculia_model_response_error',
+        route: req.path,
+        status: modelResponse.status,
+      }));
     }
 
     if (contentType) res.type(contentType);
     res.status(modelResponse.status).send(responseBody);
   } catch (error) {
-    console.error(`Dyscalculia model connection failed for ${req.method} ${req.path}: ${error.message}`);
+    console.error(JSON.stringify({
+      event: error.name === 'TimeoutError'
+        ? 'dyscalculia_model_request_timeout'
+        : 'dyscalculia_model_connection_failure',
+      route: req.path,
+      errorType: error.name,
+    }));
     error.statusCode = 502;
-    error.message = `ML model service is unavailable: ${error.message}`;
+    error.message = 'Prediction model is unavailable.';
     next(error);
   }
 };
@@ -47,7 +67,10 @@ const requireDatabase = async (req, res, next) => {
   try {
     await ensureDatabaseConnection();
   } catch (error) {
-    console.error(`MongoDB connection failed: ${error.message}`);
+    console.error(JSON.stringify({
+      event: 'dyscalculia_database_unavailable',
+      errorType: error.name,
+    }));
   }
 
   if (mongoose.connection.readyState === 1) {

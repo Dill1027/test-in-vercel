@@ -2,6 +2,9 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const nodeEnv = process.env.NODE_ENV || 'development';
+const isProduction = nodeEnv === 'production';
+
 const parseOrigins = (value) => {
   if (!value) {
     return [];
@@ -15,7 +18,7 @@ const parseOrigins = (value) => {
 
 export const env = {
   port: Number(process.env.PORT || 4001),
-  nodeEnv: process.env.NODE_ENV || 'development',
+  nodeEnv,
   mongodbUri: process.env.MONGODB_URI || '',
   mongodbDbName: process.env.MONGODB_DB_NAME || '',
   requireMongodb: process.env.REQUIRE_MONGODB === 'true',
@@ -24,7 +27,11 @@ export const env = {
     .map((server) => server.trim())
     .filter(Boolean),
   clientOrigins: parseOrigins(process.env.CLIENT_ORIGIN),
-  mlServiceUrl: process.env.ML_SERVICE_URL || `http://127.0.0.1:${process.env.ML_PORT || 4002}`,
+  // Vercel injects this for the Express-to-Flask service binding. Keep the
+  // localhost fallback for local development only, so a production binding
+  // mistake is reported instead of silently targeting a non-existent server.
+  mlServiceUrl: process.env.ML_SERVICE_URL
+    || (isProduction ? '' : `http://127.0.0.1:${process.env.ML_PORT || 4002}`),
 };
 
-export const isProduction = env.nodeEnv === 'production';
+export { isProduction };

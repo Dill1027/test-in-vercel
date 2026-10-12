@@ -82,6 +82,10 @@ def load_digit_model() -> None:
         # model deployment problem from an internal-service connectivity error.
         model = None
         model_load_error = exc
+        app.logger.error(
+            "event=dyscalculia_model_initialization_failure error_type=%s",
+            type(exc).__name__,
+        )
         app.logger.exception("Failed to load Dyscalculia ONNX model.")
 
 # Load at import time, consistent with the existing service.
@@ -522,6 +526,10 @@ def predict():
 
     except Exception as exc:
 
+        app.logger.error(
+            "event=dyscalculia_prediction_execution_failure error_type=%s",
+            type(exc).__name__,
+        )
         app.logger.exception("Model prediction failed.")
 
         return jsonify(
