@@ -49,15 +49,17 @@ function createMockPrediction() {
 }
 
 async function pythonPredictSingleCharacter(imageBuffer) {
-  const predictorUrl = env.predictorUrl || env.pythonModelUrl || "";
+  const predictorBaseUrl = env.predictorUrl || "";
 
-  if (!predictorUrl) {
+  if (!predictorBaseUrl) {
     throw new AppError(
       422,
       "PREDICTION_FAILED",
       "Unable to evaluate handwriting for this image."
     );
   }
+
+  const predictorUrl = new URL("predict", predictorBaseUrl);
 
   const form = new FormData();
 

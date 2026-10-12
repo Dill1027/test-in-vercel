@@ -12,7 +12,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 
 const proxyToModel = async (req, res, next) => {
   try {
-    const modelResponse = await fetch(`${env.mlServiceUrl}${req.path}`, {
+    const modelResponse = await fetch(new URL(req.path, env.mlServiceUrl), {
       method: req.method,
       headers: {
         'content-type': 'application/json',
@@ -94,3 +94,7 @@ export const createApp = () => {
 };
 
 export const app = createApp();
+
+// Vercel detects an Express service from this default export. The standalone
+// server entry point continues to use the named export above for local use.
+export default app;

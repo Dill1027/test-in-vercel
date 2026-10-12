@@ -100,3 +100,7 @@ export const createApp = () => {
 };
 
 export const app = createApp();
+
+// Vercel detects an Express service from this default export. The standalone
+// server entry point continues to use the named export above for local use.
+export default app;

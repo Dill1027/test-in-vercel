@@ -1,15 +1,13 @@
 const axios = require("axios");
 const env = require("../config/env");
 
-function deriveHealthUrl(predictorUrl) {
-  if (!predictorUrl) {
+function deriveHealthUrl(predictorBaseUrl) {
+  if (!predictorBaseUrl) {
     return "";
   }
 
   try {
-    const url = new URL(predictorUrl);
-    url.pathname = url.pathname.replace(/\/predict\/?$/, "/health");
-    return url.toString();
+    return new URL("health", predictorBaseUrl).toString();
   } catch {
     return "";
   }

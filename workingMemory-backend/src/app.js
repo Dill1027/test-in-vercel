@@ -62,3 +62,9 @@ export const createApp = ({ clientUrls = [] }) => {
 
   return app;
 };
+
+// Export a ready-to-serve application for Vercel while retaining createApp for
+// the standalone server, which supplies its configured CORS origins.
+export default createApp({
+  clientUrls: (process.env.CLIENT_URLS || process.env.CLIENT_URL || '').split(',').filter(Boolean),
+});

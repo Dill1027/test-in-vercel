@@ -46,7 +46,10 @@ module.exports = {
   logLevel: process.env.LOG_LEVEL || "info",
   corsOrigins: parseOrigins(process.env.CORS_ORIGIN),
   predictorProvider: process.env.PREDICTOR_PROVIDER || process.env.ML_PROVIDER || "mock",
-  predictorUrl: process.env.PREDICTOR_URL || process.env.PYTHON_MODEL_URL || "",
+  // DYSGRAPHIA_MODEL_URL is injected by the Vercel service binding. It is a
+  // base URL, so callers append the FastAPI route at request time.
+  predictorUrl:
+    process.env.DYSGRAPHIA_MODEL_URL || process.env.PREDICTOR_URL || process.env.PYTHON_MODEL_URL || "",
   predictorHealthUrl: process.env.PREDICTOR_HEALTH_URL || "",
   predictorHealthTimeoutMs: parseNumber(process.env.PREDICTOR_HEALTH_TIMEOUT_MS, 2000),
   modelStartupTimeoutMs: parseNumber(process.env.MODEL_STARTUP_TIMEOUT_MS, 120000),

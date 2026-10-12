@@ -140,6 +140,9 @@ function createApp(overrides = {}) {
   return app;
 }
 
-module.exports = {
-  createApp,
-};
+const app = createApp();
+
+// CommonJS default export for Vercel's Express detection. Keep createApp as a
+// property for the standalone server and tests that construct overridden apps.
+module.exports = app;
+module.exports.createApp = createApp;
