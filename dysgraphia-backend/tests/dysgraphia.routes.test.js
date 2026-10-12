@@ -87,6 +87,19 @@ describe("dysgraphia routes", () => {
     expect(response.body.catalogTotals.letters.total).toBe(16);
   });
 
+  it("initializes protected routes before enforcing authentication", async () => {
+    const { app } = buildApp();
+
+    const unauthenticated = await request(app).get("/api/dysgraphia/overview");
+    expect(unauthenticated.status).toBe(401);
+
+    const authenticated = await request(app)
+      .get("/api/dysgraphia/overview")
+      .set("Authorization", "Bearer valid-token");
+    expect(authenticated.status).toBe(200);
+    expect(authenticated.body.catalogTotals.letters.total).toBe(16);
+  });
+
   it("records a shape attempt and returns the updated overview", async () => {
     const { app } = buildApp();
     const response = await request(app)

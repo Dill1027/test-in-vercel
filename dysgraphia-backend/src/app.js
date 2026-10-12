@@ -46,6 +46,23 @@ function classifyProtectedRouteInitializationError(error) {
   return "unknown";
 }
 
+function sanitizeInitializationDiagnostic(value) {
+  return String(value || "")
+    .replace(/-----BEGIN [^-]+-----[\s\S]*?-----END [^-]+-----/g, "[REDACTED_PRIVATE_KEY]")
+    .replace(/\bBearer\s+[^\s]+/gi, "Bearer [REDACTED]")
+    .replace(/mongodb(?:\+srv)?:\/\/[^\s)]+/gi, "[REDACTED_DATABASE_URL]")
+    .replace(/(private[_-]?key|authorization|token)\s*[=:]\s*[^\s,}]+/gi, "$1=[REDACTED]");
+}
+
+function initializeProtectedRouteStep(step, operation) {
+  try {
+    return operation();
+  } catch (error) {
+    error.dysgraphiaInitializationStep = step;
+    throw error;
+  }
+}
+
 function createApp(overrides = {}) {
   const logger = createLogger(overrides.logger, overrides.logDestination);
   const modelHealthChecker =
@@ -66,33 +83,47 @@ function createApp(overrides = {}) {
         !overrides.firebaseAdmin &&
         ((!overrides.repository && !overrides.firestore) || (!overrides.authMiddleware && !overrides.authClient));
       const firebaseAdmin = needsFirebaseAdmin
-        ? require("./config/firebaseAdmin").getFirebaseAdminServices()
+        ? initializeProtectedRouteStep("firebase_admin", () =>
+          require("./config/firebaseAdmin").getFirebaseAdminServices()
+        )
         : overrides.firebaseAdmin;
       const repository =
         overrides.repository ||
-        createFirestoreDysgraphiaRepository({
-          firestore: overrides.firestore || firebaseAdmin?.firestore,
-          logger,
-        });
-      const predictor = overrides.predictor || createPredictor({ logger });
+        initializeProtectedRouteStep("firestore_repository", () =>
+          createFirestoreDysgraphiaRepository({
+            firestore: overrides.firestore || firebaseAdmin?.firestore,
+            logger,
+          })
+        );
+      const predictor = overrides.predictor || initializeProtectedRouteStep(
+        "predictor",
+        () => createPredictor({ logger })
+      );
       const service =
         overrides.service ||
-        createDysgraphiaService({
-          repository,
-          predictor,
-          logger,
-          now: overrides.now,
-        });
+        initializeProtectedRouteStep("service", () =>
+          createDysgraphiaService({
+            repository,
+            predictor,
+            logger,
+            now: overrides.now,
+          })
+        );
       const authMiddleware =
         overrides.authMiddleware ||
-        createAuthMiddleware({
-          authClient: overrides.authClient || firebaseAdmin?.auth,
-          repository,
-          logger,
-        });
-      const controller = overrides.controller || createDysgraphiaController({ service });
+        initializeProtectedRouteStep("auth_middleware", () =>
+          createAuthMiddleware({
+            authClient: overrides.authClient || firebaseAdmin?.auth,
+            repository,
+            logger,
+          })
+        );
+      const controller = overrides.controller || initializeProtectedRouteStep(
+        "controller",
+        () => createDysgraphiaController({ service })
+      );
       const aliases = express.Router();
-      const aliasUpload = createUploadMiddleware();
+      const aliasUpload = initializeProtectedRouteStep("routes", () => createUploadMiddleware());
 
       aliases.post(
         "/attempts/letter",
@@ -103,16 +134,21 @@ function createApp(overrides = {}) {
       );
 
       protectedRoutes = {
-        dysgraphia: createDysgraphiaRoutes({ controller, authMiddleware }),
+        dysgraphia: initializeProtectedRouteStep("routes", () =>
+          createDysgraphiaRoutes({ controller, authMiddleware })
+        ),
         aliases,
       };
       return protectedRoutes;
     } catch (error) {
-      logger.error(
+      logger?.error?.(
         {
           event: "dysgraphia_protected_route_initialization_failed",
           errorType: error?.name || "Error",
           failureCategory: classifyProtectedRouteInitializationError(error),
+          initializationStep: error?.dysgraphiaInitializationStep || "unknown",
+          errorMessage: sanitizeInitializationDiagnostic(error?.message),
+          errorStack: sanitizeInitializationDiagnostic(error?.stack),
         },
         "Dysgraphia protected route initialization failed"
       );
