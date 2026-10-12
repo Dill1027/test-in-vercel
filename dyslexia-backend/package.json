@@ -1,0 +1,28 @@
+{
+  "name": "backend-dyslexia",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "node --test",
+    "check": "node --check src/server.js",
+    "seed:dummy-dashboard": "node src/data/seedDummyDashboardData.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.4.1",
+    "helmet": "^8.0.0",
+    "mongodb": "^7.5.0",
+    "mongoose": "^8.7.2",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14",
+    "supertest": "^7.0.0"
+  }
+}

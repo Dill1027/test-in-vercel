@@ -1,0 +1,256 @@
+# ============================================================
+# ENVIRONMENT VARIABLES & SECRETS
+# ============================================================
+
+.env
+.env.local
+.env.*.local
+.env.dev
+.env.test
+!.env.example
+
+*.pem
+*.key
+*.cert
+secrets.json
+private_key.json
+*firebase-adminsdk*.json
+
+
+# ============================================================
+# NODE.JS / JAVASCRIPT DEPENDENCIES
+# ============================================================
+
+node_modules/
+jspm_packages/
+web_modules/
+
+package-lock.json
+yarn.lock
+.yarn/
+.pnp.*
+
+.npm/
+.yarn-integrity
+
+
+# ============================================================
+# BUILD / DISTRIBUTION
+# ============================================================
+
+dist/
+build/
+out/
+.next/
+.nuxt/
+.cache/
+.parcel-cache/
+coverage/
+
+# Gatsby
+.cache/
+
+# VuePress
+.vuepress/dist/
+
+# SvelteKit
+.svelte-kit/
+
+# VitePress
+**/.vitepress/dist/
+**/.vitepress/cache/
+
+# Docusaurus
+.docusaurus/
+
+# Serverless
+.serverless/
+
+# FuseBox
+.fusebox/
+
+# Instrumented code
+lib-cov/
+*.lcov
+
+
+# ============================================================
+# VITE
+# ============================================================
+
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+
+# ============================================================
+# PYTHON
+# ============================================================
+
+# Virtual environments
+.venv/
+.venv-*/
+venv/
+venv-*/
+env/
+ENV/
+**/venv/
+**/.venv/
+
+# Python cache
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+**/*.pyc
+**/*.pyo
+**/*.pyd
+
+# Python packaging
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Python logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+
+# ============================================================
+# MACHINE LEARNING
+# ============================================================
+
+# IMPORTANT:
+# best.pt is intentionally NOT ignored because it needs
+# to be committed to this repository.
+
+*.h5
+*.joblib
+*.pkl
+*.onnx
+
+# ML temporary files
+src/ml_models/**/temp/
+src/ml_models/**/__pycache__/
+src/models/temp/
+
+# ML training/output directories
+src/ml_models/**/weights/
+
+
+# ============================================================
+# USER UPLOADS / TEMPORARY FILES
+# ============================================================
+
+uploads/
+temp-uploads/
+tmp/
+temp/
+
+
+# ============================================================
+# LOGS / RUNTIME
+# ============================================================
+
+logs/
+*.log
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+
+# ============================================================
+# TESTING
+# ============================================================
+
+.nyc_output/
+.pytest_cache/
+.coverage
+htmlcov/
+
+
+# ============================================================
+# IDE / EDITOR
+# ============================================================
+
+.vscode/
+.vscode-test/
+.idea/
+
+*.swp
+*.swo
+*~
+*.sublime-workspace
+*.sublime-project
+
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+
+
+# ============================================================
+# OPERATING SYSTEM
+# ============================================================
+
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+ehthumbs.db
+Thumbs.db
+
+
+# ============================================================
+# FIREBASE
+# ============================================================
+
+.firebase/
+.tern-port
+
+
+# ============================================================
+# DOCKER
+# ============================================================
+
+docker-compose.override.yml
+
+
+# ============================================================
+# GRUNT / BOWER
+# ============================================================
+
+.grunt
+bower_components/
+.lock-wscript
+
+
+# ============================================================
+# TYPESCRIPT / ESLINT / STYLELINT
+# ============================================================
+
+*.tsbuildinfo
+.eslintcache
+.eslintignore
+.prettierignore
+.stylelintcache
+
+
+# ============================================================
+# PACKAGE MANAGERS / MISC
+# ============================================================
+
+*.tgz
+.editorconfig
+
+**/*firebase-adminsdk*.json
