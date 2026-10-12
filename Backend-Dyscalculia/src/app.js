@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 import mongoose from 'mongoose';
 
 import { env, isProduction } from './config/env.js';
+import { ensureDatabaseConnection } from './config/database.js';
 import { dyscalculiaRouter } from './routes/dyscalculiaRoutes.js';
 import { notFound } from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -33,7 +34,13 @@ const proxyToModel = async (req, res, next) => {
   }
 };
 
-const requireDatabase = (req, res, next) => {
+const requireDatabase = async (req, res, next) => {
+  try {
+    await ensureDatabaseConnection();
+  } catch (error) {
+    console.error(`MongoDB connection failed: ${error.message}`);
+  }
+
   if (mongoose.connection.readyState === 1) {
     next();
     return;
@@ -47,6 +54,12 @@ const requireDatabase = (req, res, next) => {
 
 export const createApp = () => {
   const app = express();
+
+  // Vercel is the single immediate reverse-proxy hop. Vercel overwrites
+  // X-Forwarded-For, so trusting exactly one hop makes req.ip available to
+  // express-rate-limit without accepting an arbitrary client-supplied chain.
+  // This must be set before registering the rate limiter below.
+  app.set('trust proxy', 1);
 
   app.use(helmet());
   app.use(cors({
