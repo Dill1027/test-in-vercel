@@ -32,6 +32,20 @@ function createLogger(loggerInstance, destination) {
   }, destination);
 }
 
+function classifyProtectedRouteInitializationError(error) {
+  const message = String(error?.message || "").toLowerCase();
+
+  if (message.includes("service account") || message.includes("firebase project id")) {
+    return "firebase_credentials_missing_or_invalid";
+  }
+
+  if (message.includes("@google-cloud/firestore")) {
+    return "firestore_dependency_missing";
+  }
+
+  return "unknown";
+}
+
 function createApp(overrides = {}) {
   const logger = createLogger(overrides.logger, overrides.logDestination);
   const modelHealthChecker =
@@ -98,6 +112,7 @@ function createApp(overrides = {}) {
         {
           event: "dysgraphia_protected_route_initialization_failed",
           errorType: error?.name || "Error",
+          failureCategory: classifyProtectedRouteInitializationError(error),
         },
         "Dysgraphia protected route initialization failed"
       );
