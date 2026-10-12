@@ -1,3 +1,4 @@
+
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "services": {
@@ -17,7 +18,19 @@
     "dyscalculia-model": {
       "root": "Backend-Dyscalculia",
       "framework": "flask",
-      "entrypoint": "app:app"
+      "entrypoint": "app:app",
+      "excludeFiles": [
+        "**/dataset/**",
+        "**/datasets/**",
+        "**/training_images/**",
+        "**/train_images/**",
+        "**/images/train/**",
+        "**/__pycache__/**",
+        "**/.venv/**",
+        "**/venv/**",
+        "**/*.ipynb",
+        "**/.git/**"
+      ]
     },
     "dysgraphia-backend": {
       "root": "dysgraphia-backend",
