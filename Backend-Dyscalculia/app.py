@@ -57,14 +57,23 @@ CORS(
 )
 
 model = None
+model_load_error = None
 
 def load_digit_model() -> None:
     """Load the converted ONNX model for prediction-only inference."""
-    global model
-    if not MODEL_PATH.exists():
-        raise FileNotFoundError(f"ONNX model not found at: {MODEL_PATH}")
-    model = InferenceSession(str(MODEL_PATH), providers=["CPUExecutionProvider"])
-    print(f"Loaded ONNX model from {MODEL_PATH}")
+    global model, model_load_error
+    try:
+        if not MODEL_PATH.exists():
+            raise FileNotFoundError(f"ONNX model not found at: {MODEL_PATH}")
+        model = InferenceSession(str(MODEL_PATH), providers=["CPUExecutionProvider"])
+        model_load_error = None
+        print(f"Loaded ONNX model from {MODEL_PATH}")
+    except Exception as exc:
+        # Keep the service alive so its health endpoint can distinguish a
+        # model deployment problem from an internal-service connectivity error.
+        model = None
+        model_load_error = exc
+        app.logger.exception("Failed to load Dyscalculia ONNX model.")
 
 # Load at import time, consistent with the existing service.
 load_digit_model()
@@ -360,17 +369,18 @@ def index():
 
 def health():
 
+    ready = model is not None
     return jsonify(
 
         {
 
-            "status": "ok",
+            "status": "ok" if ready else "unavailable",
 
-            "modelLoaded": model is not None,
+            "modelLoaded": ready,
 
         }
 
-    )
+    ), 200 if ready else 503
 
 @app.route("/predict", methods=["POST"])
 
@@ -379,6 +389,15 @@ def health():
 @app.route("/api/dyscalculia/tracing/predict", methods=["POST"])
 
 def predict():
+
+    if model is None:
+        app.logger.error("Dyscalculia prediction requested while the ONNX model is unavailable.")
+        return jsonify(
+            {
+                "success": False,
+                "error": "Prediction model is unavailable.",
+            }
+        ), 503
 
     payload = request.get_json(silent=True)
 

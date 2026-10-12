@@ -13,7 +13,9 @@ import { errorHandler } from './middleware/errorHandler.js';
 
 const proxyToModel = async (req, res, next) => {
   try {
-    const modelResponse = await fetch(new URL(req.path, env.mlServiceUrl), {
+    // All public aliases use the Flask service's canonical internal route.
+    // ML_SERVICE_URL is injected by the Vercel service binding at runtime.
+    const modelResponse = await fetch(new URL('/predict', env.mlServiceUrl), {
       method: req.method,
       headers: {
         'content-type': 'application/json',
@@ -25,9 +27,16 @@ const proxyToModel = async (req, res, next) => {
     const responseBody = await modelResponse.text();
     const contentType = modelResponse.headers.get('content-type');
 
+    if (!modelResponse.ok) {
+      console.error(
+        `Dyscalculia model request failed: ${req.method} ${req.path} returned ${modelResponse.status}`,
+      );
+    }
+
     if (contentType) res.type(contentType);
     res.status(modelResponse.status).send(responseBody);
   } catch (error) {
+    console.error(`Dyscalculia model connection failed for ${req.method} ${req.path}: ${error.message}`);
     error.statusCode = 502;
     error.message = `ML model service is unavailable: ${error.message}`;
     next(error);
