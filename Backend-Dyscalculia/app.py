@@ -67,7 +67,16 @@ def load_digit_model() -> None:
             raise FileNotFoundError(f"ONNX model not found at: {MODEL_PATH}")
         model = InferenceSession(str(MODEL_PATH), providers=["CPUExecutionProvider"])
         model_load_error = None
-        print(f"Loaded ONNX model from {MODEL_PATH}")
+        input_info = model.get_inputs()[0]
+        output_info = model.get_outputs()[0]
+        app.logger.info(
+            "Loaded Dyscalculia ONNX model: input=%s shape=%s type=%s output=%s shape=%s",
+            input_info.name,
+            input_info.shape,
+            input_info.type,
+            output_info.name,
+            output_info.shape,
+        )
     except Exception as exc:
         # Keep the service alive so its health endpoint can distinguish a
         # model deployment problem from an internal-service connectivity error.
@@ -182,11 +191,11 @@ def pixels_to_28x28(
 
     Supports:
 
-    \- Flat 20x20 array: 400 values
+    - Flat 20x20 array: 400 values
 
-    \- Flat 28x28 array: 784 values
+    - Flat 28x28 array: 784 values
 
-    \- Valid square nested arrays
+    - Valid square nested arrays
 
     """
 
@@ -497,7 +506,7 @@ def predict():
 
                 "success": False,
 
-                "error": f"Image preprocessing failed: {exc}",
+                "error": "Image preprocessing failed.",
 
             }
 
@@ -521,7 +530,7 @@ def predict():
 
                 "success": False,
 
-                "error": f"Prediction failed: {exc}",
+                "error": "Prediction failed.",
 
             }
 
