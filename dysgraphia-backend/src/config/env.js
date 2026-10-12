@@ -30,7 +30,12 @@ const parseNumber = (value, fallback) => {
 
 const parseOrigins = (rawOrigins) => {
   if (!rawOrigins) {
-    return ["http://localhost:5173", "http://localhost:3000"];
+    return [
+      "http://localhost:5173",
+      "https://localhost:5173",
+      "http://localhost:3000",
+      "https://localhost:3000",
+    ];
   }
 
   return rawOrigins
