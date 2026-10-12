@@ -1,5 +1,8 @@
 
-tensorflow-cpu==2.19.0
+# The tensorflow-cpu 2.19.0 distribution has a Windows-only tensorflow-intel
+# dependency that uv cannot resolve in Vercel's Linux builder. The canonical
+# TensorFlow distribution supports Linux CPU deployments directly.
+tensorflow==2.19.0
 flask==3.1.0
 flask-cors==5.0.1
 pillow==11.1.0
