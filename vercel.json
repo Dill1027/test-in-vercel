@@ -1,120 +1,18 @@
-
-{
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "services": {
-    "dyscalculia-backend": {
-      "root": "Backend-Dyscalculia",
-      "framework": "express",
-      "entrypoint": "src/app.js",
-      "bindings": [
-        {
-          "type": "service",
-          "service": "dyscalculia-model",
-          "format": "url",
-          "env": "ML_SERVICE_URL"
-        }
-      ]
-    },
-    "dyscalculia-model": {
-      "root": "Backend-Dyscalculia",
-      "framework": "flask",
-      "entrypoint": "app:app"
-    },
-    "dysgraphia-backend": {
-      "root": "dysgraphia-backend",
-      "framework": "express",
-      "entrypoint": "src/app.js",
-      "bindings": [
-        {
-          "type": "service",
-          "service": "dysgraphia-model",
-          "format": "url",
-          "env": "DYSGRAPHIA_MODEL_URL"
-        }
-      ]
-    },
-    "dysgraphia-model": {
-      "root": "dysgraphia-backend/src/models",
-      "framework": "fastapi",
-      "entrypoint": "app:app"
-    },
-    "dyslexia-backend": {
-      "root": "dyslexia-backend",
-      "framework": "express",
-      "entrypoint": "src/app.js"
-    },
-    "workingmemory-backend": {
-      "root": "workingMemory-backend",
-      "framework": "express",
-      "entrypoint": "src/app.js"
-    }
-  },
-  "rewrites": [
+"dysgraphia-backend": {
+  "root": "dysgraphia-backend",
+  "framework": "express",
+  "entrypoint": "src/app.js",
+  "bindings": [
     {
-      "source": "/api/dyscalculia/(.*)",
-      "destination": {
-        "service": "dyscalculia-backend"
-      }
-    },
-    {
-      "source": "/api/predict-number",
-      "destination": {
-        "service": "dyscalculia-backend"
-      }
-    },
-    {
-      "source": "/predict",
-      "destination": {
-        "service": "dyscalculia-backend"
-      }
-    },
-    {
-      "source": "/api/dysgraphia/(.*)",
-      "destination": {
-        "service": "dysgraphia-backend"
-      }
-    },
-    {
-      "source": "/attempts/letter",
-      "destination": {
-        "service": "dysgraphia-backend"
-      }
-    },
-    {
-      "source": "/api/dyslexia/(.*)",
-      "destination": {
-        "service": "dyslexia-backend"
-      }
-    },
-    {
-      "source": "/assessment/(.*)",
-      "destination": {
-        "service": "dyslexia-backend"
-      }
-    },
-    {
-      "source": "/dashboard/(.*)",
-      "destination": {
-        "service": "dyslexia-backend"
-      }
-    },
-    {
-      "source": "/api/working-memory/(.*)",
-      "destination": {
-        "service": "workingmemory-backend"
-      }
-    },
-    {
-      "source": "/api/workingMemory/(.*)",
-      "destination": {
-        "service": "workingmemory-backend"
-      }
-    },
-    {
-      "source": "/api/health/(.*)",
-      "destination": {
-        "service": "workingmemory-backend"
-      }
+      "type": "service",
+      "service": "dysgraphia-model",
+      "format": "url",
+      "env": "DYSGRAPHIA_MODEL_URL"
     }
   ]
+},
+"dysgraphia-model": {
+  "root": "dysgraphia-backend/src/models",
+  "framework": "fastapi",
+  "entrypoint": "app:app"
 }
