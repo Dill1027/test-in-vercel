@@ -127,6 +127,8 @@ pip-delete-this-directory.txt
 *.joblib
 *.pkl
 *.onnx
+!src/best.onnx
+!src/class_names.json
 
 # ML temporary files
 src/ml_models/**/temp/

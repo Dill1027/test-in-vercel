@@ -34,7 +34,7 @@
       ]
     },
     "dysgraphia-model": {
-      "root": "dysgraphia-backend/src/models",
+      "root": "dysgraphia-backend/src",
       "framework": "fastapi",
       "entrypoint": "app:app"
     },
