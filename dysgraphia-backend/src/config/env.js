@@ -3,6 +3,8 @@ const dotenv = require("dotenv");
 
 dotenv.config();
 
+const nodeEnv = process.env.NODE_ENV || "development";
+
 const resolveEnvPath = (value) => {
   if (!value) {
     return "";
@@ -45,12 +47,16 @@ const parseOrigins = (rawOrigins) => {
 };
 
 module.exports = {
-  nodeEnv: process.env.NODE_ENV || "development",
+  nodeEnv,
   host: process.env.HOST || "0.0.0.0",
   port: parseNumber(process.env.PORT, 5000),
   logLevel: process.env.LOG_LEVEL || "info",
   corsOrigins: parseOrigins(process.env.CORS_ORIGIN),
-  predictorProvider: process.env.PREDICTOR_PROVIDER || process.env.ML_PROVIDER || "mock",
+  // Local development can use the existing mock explicitly, but production
+  // must use the bound FastAPI service rather than silently returning mock
+  // handwriting predictions.
+  predictorProvider:
+    process.env.PREDICTOR_PROVIDER || process.env.ML_PROVIDER || (nodeEnv === "production" ? "python" : "mock"),
   // DYSGRAPHIA_MODEL_URL is injected by the Vercel service binding. It is a
   // base URL, so callers append the FastAPI route at request time.
   predictorUrl:
